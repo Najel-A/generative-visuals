@@ -3,7 +3,8 @@ import librosa
 import soundfile as sf
 import io
 import numpy as np
-from .generate import *
+from .analyze import *
+from .model import *
 from pydub import AudioSegment
 
 '''
@@ -42,8 +43,8 @@ def upload_file():
     file_extension = file.filename.rsplit('.', 1)[-1].lower()
 
     #Reject invalid types
-    if file_extension not in allowed_extensions:
-        return jsonify({"error": "Invalid file type."})
+    # if file_extension not in allowed_extensions:
+    #     return jsonify({"error": "Invalid file type."})
 
     # Attempt to load audio using librosa
     try:
@@ -58,13 +59,32 @@ def upload_file():
             print("The array contains only zeros.")
             return jsonify({"error": "Audio file could not be processed or it is silent."}), 400
 
-        result = analyze_audio(audio_data)
+        # result = analyze_audio(audio_data, y, sr) # pass in the time series and sample rate. OMIT audio data
+        features = analyze_audio(audio_data, y, sr)
+        features = np.expand_dims(features, axis=0)  # Reshape for prediction
+
+        # Get model prediction; outputs only 5 controls for each time step
+        model = create_model()
+        prediction = model.predict(features)
+        predicted_class = np.argmax(prediction)
+        print(prediction)
+        print(predicted_class)
+        control_sequence = prediction.squeeze().tolist()
 
     except Exception as e:
         return jsonify({"error": f"File could not be processed. Error: {str(e)}"}), 400
 
     # return the analysis result
-    return jsonify(result), 200
+    # return jsonify(result), 200
+
+    # Sends controls to frontend
+    controls = {
+        "color_scheme": control_sequence[:3],  # First 3 values as RGB
+        "camera_movement": control_sequence[3:6],
+        "visual_effects": "pulsating" if np.mean(control_sequence) > 0.5 else "static",
+    }
+
+    return jsonify(controls)
 
 
 def test():

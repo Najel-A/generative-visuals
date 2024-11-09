@@ -16,7 +16,7 @@ def get_data():
 # File Upload Input
 @upload_blueprint.route('/upload', methods=['POST'])
 def upload_file_route():  # Defines a route function that calls the upload_file function
-    time.sleep(20)
+    #time.sleep(20)       # replace this with a await
     return upload_file()  # Calls the uploaded file function that was imported
 
 #Functionality GET Request
