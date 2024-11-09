@@ -275,6 +275,21 @@ const AudioVisualApp = () => {
           {...processingStages.visualGeneration} 
         />
       </div>
+ 
+      <button
+        onClick={() => {
+          setIsProcessingPage(false);
+          setIsProcessing(false);
+          setProcessingStages({
+            audioAnalysis: { status: 'pending', progress: 0 },
+            beatDetection: { status: 'pending', progress: 0 },
+            visualGeneration: { status: 'pending', progress: 0 }
+          });
+        }}
+        className="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+      >
+        Go Back to Home
+      </button>
     </div>
   );
 
