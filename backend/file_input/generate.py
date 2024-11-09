@@ -6,8 +6,6 @@ from pydub import AudioSegment
 # Function to analyze the audio file using librosa
 def analyze_audio(file):
     try:
-        y, sr = librosa.load(io.BytesIO(file), sr=None)
-    
         print("Audio data:", y)
         print("Sample rate:", sr)
 
@@ -15,7 +13,7 @@ def analyze_audio(file):
         tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
         beat_times = librosa.frames_to_time(beats, sr=sr)
         print(tempo, beat_times)
-        
+
         # Return analysis result, needs to be in a list not numpy format
         return {"tempo": tempo.tolist(), "beats": beat_times.tolist()}
     except Exception as e:
