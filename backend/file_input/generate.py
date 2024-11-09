@@ -16,7 +16,7 @@ def analyze_audio(file):
         beat_times = librosa.frames_to_time(beats, sr=sr)
         print(tempo, beat_times)
         
-        # Return analysis result
-        return {"tempo": tempo, "beats": beats}
+        # Return analysis result, needs to be in a list not numpy format
+        return {"tempo": tempo.tolist(), "beats": beat_times.tolist()}
     except Exception as e:
         return {"error": f"File could not be processed. Error: {str(e)}"}
