@@ -24,6 +24,9 @@ def upload_file():
     allowed_extensions = {'.mp3', '.wav'}
     file_extension = file.filename.rsplit('.', 1)[-1].lower()
 
+    #Reject invalid types
+    if file_extension not in allowed_extensions:
+        return jsonify({"error": "Invalid file type."})
 
     # Attempt to load audio using librosa
     try:
