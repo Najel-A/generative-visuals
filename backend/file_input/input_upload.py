@@ -4,10 +4,27 @@ import soundfile as sf
 import io
 import numpy as np
 from .generate import *
+from pydub import AudioSegment
 
 '''
 TODO: Handle file input here
 '''
+
+#Trim audio file to 10 seconds
+def trim_audio(file,duration_ms=10000):
+    #Loads audio and trims it to duration_ms which is 10 seconds
+    audio = AudioSegment.from_file(io.BytesIO(file))
+    audio_trim = audio[:duration_ms]
+
+    #Converts trimmed audio to wav
+    audio_trim_io = io.BytesIO()
+    audio_trim.export(audio_trim_io, format="wav")
+
+    audio_trim_io.seek(0)
+
+    return audio_trim_io
+
+
 
 def upload_file():
     # Check if a file is part of the request; frontend check?
