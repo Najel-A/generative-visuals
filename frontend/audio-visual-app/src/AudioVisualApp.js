@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, Play, Music, Video, AlertCircle, CheckCircle, Sparkles, AudioWaveform } from 'lucide-react';
 import axios from 'axios';
+import IcosahedronVisualizer from './IcosahedronVisualizer';
 
 // Component for processing spinner
 const ProcessingAudio = () => (
@@ -96,10 +97,9 @@ const ProcessingPage = ({ audioFeatures, processingStages, goBack }) => (
       {audioFeatures ? (
         <AudioAnalysisResults audioFeatures={audioFeatures} />
       ) : (
-        <ProcessingAudio />
+        <IcosahedronVisualizer audioFeatures={audioFeatures} />
       )}
     </div>
-
     <ProcessingStatus processingStages={processingStages} />
   </div>
 );
