@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, Play, Music, Video, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
-import { CustomAlert } from './CustomAlert';
+import React, { useState } from 'react';
+import { Upload, Play, Music, Video, AlertCircle, CheckCircle, Sparkles, AudioWaveform } from 'lucide-react';
 import axios from 'axios';
-
 
 const AudioVisualApp = () => {
   const [isProcessingPage, setIsProcessingPage] = useState(false);
@@ -16,100 +14,6 @@ const AudioVisualApp = () => {
   });
   const [audioFeatures, setAudioFeatures] = useState(null);
 
-  // Audio Processing Logic
-  const analyzeAudio = async (audioFile) => {
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const reader = new FileReader();
-
-      reader.onload = async (e) => {
-        try {
-          // Decode audio
-          const audioData = await audioContext.decodeAudioData(e.target.result);
-          
-          // Update audio analysis stage
-          updateProcessingStage('audioAnalysis', 'processing', 30);
-          
-          // Create analyzer node
-          const analyser = audioContext.createAnalyser();
-          analyser.fftSize = 2048;
-          
-          // Get frequency data
-          const bufferLength = analyser.frequencyBinCount;
-          const dataArray = new Uint8Array(bufferLength);
-          analyser.getByteFrequencyData(dataArray);
-          
-          updateProcessingStage('audioAnalysis', 'processing', 60);
-          
-          // Simple beat detection
-          const source = audioContext.createBufferSource();
-          source.buffer = audioData;
-          source.connect(analyser);
-          
-          updateProcessingStage('beatDetection', 'processing', 50);
-          
-          // Simulate beat detection processing
-          setTimeout(() => {
-            const features = {
-              duration: audioData.duration,
-              numberOfChannels: audioData.numberOfChannels,
-              sampleRate: audioData.sampleRate,
-              beats: analyzeBeatPatterns(dataArray)
-            };
-            
-            setAudioFeatures(features);
-            updateProcessingStage('beatDetection', 'complete', 100);
-            updateProcessingStage('audioAnalysis', 'complete', 100);
-            
-            // Start visual generation
-            generateVisuals(features);
-          }, 2000);
-          
-        } catch (decodeError) {
-          throw new Error('Failed to decode audio file');
-        }
-      };
-      
-      reader.readAsArrayBuffer(audioFile);
-    } catch (error) {
-      setError('Failed to process audio file: ' + error.message);
-      setIsProcessing(false);
-    }
-  };
-
-  const analyzeBeatPatterns = (frequencyData) => {
-    // Simplified beat detection algorithm
-    const beats = [];
-    let threshold = 100;
-    
-    for (let i = 0; i < frequencyData.length; i++) {
-      if (frequencyData[i] > threshold) {
-        beats.push({
-          index: i,
-          intensity: frequencyData[i]
-        });
-      }
-    }
-    
-    return beats;
-  };
-
-  const generateVisuals = (features) => {
-    updateProcessingStage('visualGeneration', 'processing', 30);
-    
-    // Simulate visual generation process
-    const steps = [60, 90, 100];
-    steps.forEach((progress, index) => {
-      setTimeout(() => {
-        updateProcessingStage('visualGeneration', 'processing', progress);
-        if (progress === 100) {
-          updateProcessingStage('visualGeneration', 'complete', 100);
-          setIsProcessing(false);
-        }
-      }, 1000 * (index + 1));
-    });
-  };
-
   const updateProcessingStage = (stage, status, progress) => {
     setProcessingStages(prev => ({
       ...prev,
@@ -120,181 +24,176 @@ const AudioVisualApp = () => {
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     setError(null);
-    
+
     if (!file) {
       setError('Please select a file');
       return;
     }
-    
+
     if (!file.type.startsWith('audio/')) {
       setError('Please select a valid audio file');
       return;
     }
-    
-    if (file.size > 50 * 1024 * 1024) { // 50MB limit
+
+    if (file.size > 50 * 1024 * 1024) {
       setError('File size should be less than 50MB');
       return;
     }
-    
+
     setSelectedFile(file);
   };
 
   const handleProcess = async () => {
-    if (selectedFile) {
-      setIsProcessing(true);
-      setIsProcessingPage(true);
-  
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-  
-      try {
-        const response = await axios.post("http://127.0.0.1:5000/upload", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data"
-          }
-        });
-  
-        if (response.data) {
-          setAudioFeatures(response.data);
-          setProcessingStages({
-            audioAnalysis: { status: 'complete', progress: 100 },
-            beatDetection: { status: 'complete', progress: 100 },
-            visualGeneration: { status: 'complete', progress: 100 },
-          });
+    if (!selectedFile) return;
+
+    setIsProcessing(true);
+    setIsProcessingPage(true);
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const response = await axios.post("http://127.0.0.1:5000/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
         }
-      } catch (error) {
-        setError("Failed to process audio file: " + error.message);
-      } finally {
-        setIsProcessing(false);
+      });
+
+      if (response.data) {
+        setAudioFeatures(response.data);
+        setProcessingStages({
+          audioAnalysis: { status: 'complete', progress: 100 },
+          beatDetection: { status: 'complete', progress: 100 },
+          visualGeneration: { status: 'complete', progress: 100 },
+        });
       }
+    } catch (error) {
+      setError("Failed to process audio file: " + error.message);
+    } finally {
+      setIsProcessing(false);
     }
   };
-  
-  
-  
 
-  const ProcessingStage = ({ title, status, progress }) => (
-    <div className="mb-4">
-      <div className="flex justify-between items-center mb-2">
-        <div className="flex items-center">
-          {status === 'complete' && <CheckCircle className="w-5 h-5 text-green-400 mr-2" />}
-          {status === 'processing' && <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400 mr-2" />}
-          {status === 'pending' && <div className="w-5 h-5 border-2 border-gray-300 rounded-full mr-2" />}
-          <span className="text-white">{title}</span>
+  const ProcessingStage = ({ title, icon: Icon, status, progress }) => (
+    <div className="relative mb-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-blue-500/10 rounded-lg">
+            <Icon className="w-5 h-5 text-blue-500" />
+          </div>
+          <span className="text-white font-medium">{title}</span>
         </div>
-        <span className="text-blue-400">{progress}%</span>
+        <div className="flex items-center space-x-2">
+          {status === 'complete' && <CheckCircle className="w-5 h-5 text-green-500" />}
+          <span className="text-blue-400 font-medium">{progress}%</span>
+        </div>
       </div>
       <div className="w-full bg-gray-700 rounded-full h-2">
-        <div 
-          className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-in-out" 
+        <div
+          className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-in-out"
           style={{ width: `${progress}%` }}
         ></div>
       </div>
     </div>
   );
 
+  const Feature = ({ icon: Icon, title, description }) => (
+    <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 p-6 hover:from-blue-500/20 hover:to-purple-500/20 transition-all duration-300">
+      <div className="absolute inset-0 bg-grid-white/5 mask-gradient" />
+      <div className="relative z-10">
+        <div className="mb-4 inline-block rounded-lg bg-blue-500/10 p-3">
+          <Icon className="h-6 w-6 text-blue-400" />
+        </div>
+        <h3 className="mb-2 text-xl font-semibold text-white">{title}</h3>
+        <p className="text-gray-400">{description}</p>
+      </div>
+    </div>
+  );
+
   const LandingPage = () => (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black flex flex-col items-center justify-center p-8 transition-opacity duration-500">
-      <div className="backdrop-blur-lg bg-white/10 rounded-xl p-8 max-w-2xl w-full">
-        <h1 className="text-4xl font-bold text-white mb-6 text-center">
-          ABBz Audio Visual Experience
-        </h1>
-        
-        {error && (
-            <CustomAlert variant="destructive" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <div>
-                <div className="font-semibold">Error</div>
-                <div className="text-sm">{error}</div>
-                </div>
-            </CustomAlert>
-        )}
-
-        <div className="space-y-6">
-          <div className="bg-white/5 p-6 rounded-lg hover:bg-white/10 transition-colors">
-            <div className="flex items-center mb-4">
-              <Music className="w-6 h-6 text-blue-400 mr-3" />
-              <h2 className="text-xl text-white">Audio Analysis</h2>
-            </div>
-            <p className="text-gray-300">
-              Advanced AI algorithms detect percussion and harmonic elements in your audio
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-gray-900 to-black">
+      <div className="relative px-6 py-24 sm:px-8 sm:py-32 lg:px-12">
+        <div className="relative mx-auto max-w-2xl">
+          <div className="text-center">
+            <h1 className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl">
+              ABBz Audio Visual Experience
+            </h1>
+            <p className="mt-6 text-lg leading-8 text-gray-300">
+              Transform your audio into stunning visuals powered by AI
             </p>
           </div>
 
-          <div className="bg-white/5 p-6 rounded-lg hover:bg-white/10 transition-colors">
-            <div className="flex items-center mb-4">
-              <Video className="w-6 h-6 text-purple-400 mr-3" />
-              <h2 className="text-xl text-white">Visual Engine</h2>
+          {error && (
+            <div className="mt-8 rounded-lg bg-red-500/10 p-4 text-red-400">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5" />
+                <span>{error}</span>
+              </div>
             </div>
-            <p className="text-gray-300">
-              Transform your audio into stunning visuals using our AI-powered rendering engine
-            </p>
+          )}
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-2">
+            <Feature
+              icon={Music}
+              title="Audio Analysis"
+              description="Advanced AI algorithms detect percussion and harmonic elements in your audio"
+            />
+            <Feature
+              icon={AudioWaveform}
+              title="Visual Engine"
+              description="Transform your audio into stunning visuals using our AI-powered rendering engine"
+            />
           </div>
 
-          <div className="mt-8 space-y-4">
-            <div className="flex items-center justify-center w-full">
-              <label className="w-full flex flex-col items-center px-4 py-6 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
-                <Upload className="w-8 h-8 text-blue-400" />
-                <span className="mt-2 text-base text-white">
-                  {selectedFile ? selectedFile.name : 'Select audio file'}
+          <div className="mt-12 overflow-hidden bg-black/50 backdrop-blur-lg rounded-xl p-12 border border-gray-700">
+            <label className="group relative flex cursor-pointer flex-col items-center justify-center gap-4 border-2 border-dashed border-gray-700 bg-black/50 p-12 text-center hover:border-gray-600 hover:bg-black/60">
+              <div className="rounded-full bg-blue-500/10 p-4 transition-colors group-hover:bg-blue-500/20">
+                <Upload className="h-8 w-8 text-blue-400" />
+              </div>
+              <div>
+                <span className="text-lg font-medium text-white">
+                  {selectedFile ? selectedFile.name : 'Drop your audio file here'}
                 </span>
-                <span className="mt-1 text-sm text-gray-400">
+                <p className="mt-1 text-sm text-gray-400">
                   Supported formats: MP3, WAV, OGG (max 50MB)
-                </span>
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  onChange={handleFileSelect} 
-                  accept="audio/*" 
-                />
-              </label>
-            </div>
-            
-            {selectedFile && !error && (
-              <button
-                onClick={handleProcess}
-                disabled={isProcessing}
-                className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
-              >
+                </p>
+              </div>
+              <input
+                type="file"
+                className="hidden"
+                onChange={handleFileSelect}
+                accept="audio/*"
+              />
+            </label>
+          </div>
+
+          {selectedFile && !error && (
+            <button
+              onClick={handleProcess}
+              disabled={isProcessing}
+              className="mt-8 w-full rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-4 font-medium text-white shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-purple-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50"
+            >
+              <div className="flex items-center justify-center space-x-2">
                 {isProcessing ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white" />
                 ) : (
                   <>
-                    <Play className="w-5 h-5" />
+                    <Play className="h-5 w-5" />
                     <span>Process Audio</span>
                   </>
                 )}
-              </button>
-            )}
-          </div>
+              </div>
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 
   const ProcessingPage = () => (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 animate-fadeIn">
-      <div className="w-full max-w-4xl aspect-video bg-gray-900 rounded-lg flex items-center justify-center p-8">
-        {audioFeatures ? (
-          <div className="text-white space-y-4">
-            <h2 className="text-2xl font-bold mb-4">Audio Analysis Results</h2>
-            <p>Duration: {audioFeatures.duration ? audioFeatures.duration.toFixed(2) : 'N/A'}s</p>
-            <p>Channels: {audioFeatures.numberOfChannels ?? 'N/A'}</p>
-            <p>Sample Rate: {audioFeatures.sampleRate ? `${audioFeatures.sampleRate}Hz` : 'N/A'}</p>
-            <p>Detected Beats: {audioFeatures.beats ? audioFeatures.beats.length : 'N/A'}</p>
-          </div>
-        ) : (
-          <div className="text-white text-xl">Processing Audio...</div>
-        )}
-      </div>
-  
-      <div className="mt-8 w-full max-w-4xl bg-gray-900 rounded-lg p-6">
-        <h3 className="text-white text-lg mb-4">Processing Status</h3>
-        <ProcessingStage title="Audio Analysis" {...processingStages.audioAnalysis} />
-        <ProcessingStage title="Beat Detection" {...processingStages.beatDetection} />
-        <ProcessingStage title="Visual Generation" {...processingStages.visualGeneration} />
-      </div>
-  
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-gray-900 to-black p-8 relative flex items-center justify-center">
+      
+      {/* Go Back Button */}
       <button
         onClick={() => {
           setIsProcessingPage(false);
@@ -305,12 +204,69 @@ const AudioVisualApp = () => {
             visualGeneration: { status: 'pending', progress: 0 }
           });
         }}
-        className="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+        className="absolute top-4 left-4 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
       >
         Go Back to Home
       </button>
+    
+      {/* Main Processing Display */}
+      <div className="w-full max-w-5xl bg-black/60 backdrop-blur-lg rounded-3xl p-16 shadow-xl flex flex-col items-center justify-center space-y-8 mb-16">
+        {audioFeatures ? (
+          <div className="space-y-6 text-center">
+            <h2 className="text-3xl font-bold text-white">Audio Analysis Results</h2>
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              {[
+                { label: 'Duration', value: audioFeatures.duration ? `${audioFeatures.duration.toFixed(2)}s` : 'N/A' },
+                { label: 'Channels', value: audioFeatures.numberOfChannels ?? 'N/A' },
+                { label: 'Sample Rate', value: audioFeatures.sampleRate ? `${audioFeatures.sampleRate}Hz` : 'N/A' },
+                { label: 'Detected Beats', value: audioFeatures.beats ? audioFeatures.beats.length : 'N/A' }
+              ].map((item) => (
+                <div key={item.label} className="rounded-lg bg-gray-800/50 p-6">
+                  <div className="text-sm text-gray-400">{item.label}</div>
+                  <div className="mt-2 text-2xl font-semibold text-white">{item.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+            <div className="flex flex-col items-center justify-center py-10 -mt-10">
+                <div className="mb-24 inline-block rounded-full bg-blue-500/10 p-28">
+                    <div className="h-56 w-56 animate-spin rounded-full border-8 border-blue-400 border-t-transparent border-solid" />
+                </div>
+                <div className="text-3xl font-semibold text-white">Processing Audio...</div>
+            </div>
+
+          
+        )}
+      </div>
+    
+      {/* Wider Processing Status */}
+      <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 w-full max-w-3xl rounded-lg bg-gray-800/60 p-3 shadow-lg backdrop-blur-lg">
+        <h3 className="mb-1 text-lg font-medium text-white text-center">Processing Status</h3>
+        <div className="grid grid-cols-3 gap-6">
+          <ProcessingStage
+            title="Audio Analysis"
+            icon={Music}
+            {...processingStages.audioAnalysis}
+          />
+          <ProcessingStage
+            title="Beat Detection"
+            icon={Sparkles}
+            {...processingStages.beatDetection}
+          />
+          <ProcessingStage
+            title="Visual Generation"
+            icon={Video}
+            {...processingStages.visualGeneration}
+          />
+        </div>
+      </div>
     </div>
   );
+  
+  
+  
+
   
 
   return isProcessingPage ? <ProcessingPage /> : <LandingPage />;
