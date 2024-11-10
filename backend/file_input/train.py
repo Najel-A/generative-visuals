@@ -1,63 +1,67 @@
-from keras.models import load_model
-from model import create_model
-from sklearn.model_selection import train_test_split
-from tensorflow.keras.callbacks import ModelCheckpoint
-from file_input.analyze import analyze_audio
-from io import BytesIO
-import numpy as np
-import librosa
 import os
+import numpy as np
+from file_input.analyze import analyze_audio
+from file_input.model import create_model
+from keras.optimizers import Adam
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.utils import to_categorical
+import librosa
+import io
 
-def load_and_preprocess(file_object):
+def load_audio_data(file_path):
+    """
+    Loads and processes the audio data using librosa and analyzes it.
+    """
     try:
-        file_object.seek(0)
-        y, sr = librosa.load(file_object, sr=None) #Load audio
-        features = analyze_audio(file_object, y, sr) #Extract features
+        # Load audio file using librosa
+        y, sr = librosa.load(file_path, sr=None)
 
-        features = features.reshape((features.shape[0], -1, 1)) #Reshaping features
+        # Process audio and extract features
+        features = analyze_audio(None, y, sr)
+        features = np.expand_dims(features, axis=0)  # Reshape to match input shape
+
         return features
     except Exception as e:
-        return {"error": f"File could not be processed. Error: {str(e)}"}
+        print(f"Error loading or processing audio: {e}")
+        return None
 
-#Prepare dataset from the files and labels (light, dark mood)
-def prepare_dataset(files,labels):
-    X = []
-    y = []
 
-    for idx, file_object in enumerate(files):
-        features = load_and_preprocess(file_object)
+def generate_control_labels():
+    # Example: Random control sequence (just for demonstration purposes)
+    # In a real setup, replace this with actual control sequences based on your dataset
+    control_sequence = np.random.rand(1, 10, 5)  # Generate random control sequence for 10 time steps
+    return control_sequence
 
-        if isinstance(features,dict) and 'error' in features:
-            print(f"Skipping file {idx}: {features['error']}")
-            continue  # Skip files that failed to process
 
-        X.append(features)
-        y.append(labels[idx])  # Assume labels are provided in the same order as files
+def train_model(audio_file_path, epochs=10, batch_size=32):
+    """
+    Main function to train the model on a single audio file.
+    """
+    features = load_audio_data(audio_file_path)
+    if features is None:
+        print("Error: Features could not be loaded.")
+        return
 
-    X = np.array(X)
-    y = np.array(y)
+    # Generate control sequence labels (for now, using a placeholder)
+    control_labels = generate_control_labels()
 
-    return X,y
+    # Split data into training and testing sets (for this case, we only have one example, so train only)
+    X_train, y_train = features, control_labels
 
-def train_model():
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Create the model
+    model = create_model(input_shape=X_train.shape[1:])
 
-    #Instantiate the model
-    model = create_model(input_shape=(X.shape[1],))
+    # Compile the model
+    model.compile(optimizer=Adam(), loss='mse')
+
     # Train the model
-    model.fit(X_train, y_train, epochs=10, batch_size=8, validation_data=(X_val, y_val))
+    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
 
-    # Evaluate the model
-    loss = model.evaluate(X_val, y_val)
-    print(f"Validation Loss: {loss}")
+    # Save the model after training
+    model.save('generative_visual_model.keras')
+    print("Model trained and saved.")
 
-    model.save("audio_model.h5")
 
 if __name__ == "__main__":
-
-    files = []
-    labels = []
-
-    X, y = prepare_dataset(files,labels)
-
-    train_model(X, y)
+    audio_file_path = "/Users/yipvi/generative-visuals/backend/sample_music/21.wav"
+    train_model(audio_file_path)
