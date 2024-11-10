@@ -16,7 +16,8 @@ import io
 '''
 
 app = Flask(__name__)
-CORS(app)  # Enables CORS for all routes; Allows for running on different ports
+#CORS(app)  # Enables CORS for all routes; Allows for running on different ports
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 app.register_blueprint(upload_blueprint) # Register blueprint
 
 #Initializing SocketIO
