@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Play, Music, Video, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { CustomAlert } from './CustomAlert';
+import axios from 'axios';
+
 
 const AudioVisualApp = () => {
   const [isProcessingPage, setIsProcessingPage] = useState(false);
@@ -141,9 +143,39 @@ const AudioVisualApp = () => {
     if (selectedFile) {
       setIsProcessing(true);
       setIsProcessingPage(true);
-      await analyzeAudio(selectedFile);
+  
+      // Prepare FormData to send the file in the request body
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+  
+      try {
+        // Make the POST request directly to the backend URL
+        const response = await axios.post(
+          "http://127.0.0.1:5000/upload",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data"
+            }
+          }
+        );
+  
+        // Handle the response data
+        if (response.data) {
+          setAudioFeatures(response.data);
+          updateProcessingStage("audioAnalysis", "complete", 100);
+          updateProcessingStage("beatDetection", "complete", 100);
+          updateProcessingStage("visualGeneration", "complete", 100);
+          setIsProcessing(false);
+        }
+      } catch (error) {
+        setError("Failed to process audio file: " + error.message);
+        setIsProcessing(false);
+      }
     }
   };
+  
+  
 
   const ProcessingStage = ({ title, status, progress }) => (
     <div className="mb-4">
