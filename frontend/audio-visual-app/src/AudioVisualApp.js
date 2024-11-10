@@ -144,36 +144,32 @@ const AudioVisualApp = () => {
       setIsProcessing(true);
       setIsProcessingPage(true);
   
-      // Prepare FormData to send the file in the request body
       const formData = new FormData();
       formData.append("file", selectedFile);
   
       try {
-        // Make the POST request directly to the backend URL
-        const response = await axios.post(
-          "http://127.0.0.1:5000/upload",
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data"
-            }
+        const response = await axios.post("http://127.0.0.1:5000/upload", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data"
           }
-        );
+        });
   
-        // Handle the response data
         if (response.data) {
           setAudioFeatures(response.data);
-          updateProcessingStage("audioAnalysis", "complete", 100);
-          updateProcessingStage("beatDetection", "complete", 100);
-          updateProcessingStage("visualGeneration", "complete", 100);
-          setIsProcessing(false);
+          setProcessingStages({
+            audioAnalysis: { status: 'complete', progress: 100 },
+            beatDetection: { status: 'complete', progress: 100 },
+            visualGeneration: { status: 'complete', progress: 100 },
+          });
         }
       } catch (error) {
         setError("Failed to process audio file: " + error.message);
+      } finally {
         setIsProcessing(false);
       }
     }
   };
+  
   
   
 
@@ -282,32 +278,23 @@ const AudioVisualApp = () => {
         {audioFeatures ? (
           <div className="text-white space-y-4">
             <h2 className="text-2xl font-bold mb-4">Audio Analysis Results</h2>
-            <p>Duration: {audioFeatures.duration.toFixed(2)}s</p>
-            <p>Channels: {audioFeatures.numberOfChannels}</p>
-            <p>Sample Rate: {audioFeatures.sampleRate}Hz</p>
-            <p>Detected Beats: {audioFeatures.beats.length}</p>
+            <p>Duration: {audioFeatures.duration ? audioFeatures.duration.toFixed(2) : 'N/A'}s</p>
+            <p>Channels: {audioFeatures.numberOfChannels ?? 'N/A'}</p>
+            <p>Sample Rate: {audioFeatures.sampleRate ? `${audioFeatures.sampleRate}Hz` : 'N/A'}</p>
+            <p>Detected Beats: {audioFeatures.beats ? audioFeatures.beats.length : 'N/A'}</p>
           </div>
         ) : (
           <div className="text-white text-xl">Processing Audio...</div>
         )}
       </div>
-      
+  
       <div className="mt-8 w-full max-w-4xl bg-gray-900 rounded-lg p-6">
         <h3 className="text-white text-lg mb-4">Processing Status</h3>
-        <ProcessingStage 
-          title="Audio Analysis" 
-          {...processingStages.audioAnalysis} 
-        />
-        <ProcessingStage 
-          title="Beat Detection" 
-          {...processingStages.beatDetection} 
-        />
-        <ProcessingStage 
-          title="Visual Generation" 
-          {...processingStages.visualGeneration} 
-        />
+        <ProcessingStage title="Audio Analysis" {...processingStages.audioAnalysis} />
+        <ProcessingStage title="Beat Detection" {...processingStages.beatDetection} />
+        <ProcessingStage title="Visual Generation" {...processingStages.visualGeneration} />
       </div>
- 
+  
       <button
         onClick={() => {
           setIsProcessingPage(false);
@@ -324,6 +311,7 @@ const AudioVisualApp = () => {
       </button>
     </div>
   );
+  
 
   return isProcessingPage ? <ProcessingPage /> : <LandingPage />;
 };
