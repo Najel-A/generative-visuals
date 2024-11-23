@@ -1,32 +1,24 @@
-from flask import Blueprint, request, jsonify
-from file_input.input_upload import *
-import time
-
 '''
      To reduce space in the routes, going to create functions in separate directories and just import it here
 '''
 
-upload_blueprint = Blueprint('upload', __name__) # Creates a blueprint for the app.py
+from flask import Blueprint, request, jsonify
+from flask_socketio import SocketIO
+from file_input.input_upload import upload_file  # Import your file upload function
 
-# Default Load
+
+
+# Creates a blueprint for the app.py
+upload_blueprint = Blueprint('upload', __name__)
+
+# Default Load Route
 @upload_blueprint.route('/', methods=['GET'])
 def get_data():
-    return test()
+    return jsonify({"message": "Connection Established"})
 
-# File Upload Input
+# File Upload Route
 @upload_blueprint.route('/upload', methods=['POST'])
-def upload_file_route():  # Defines a route function that calls the upload_file function
-    #time.sleep(20)       # replace this with a await
-    return upload_file()  # Calls the uploaded file function that was imported
-
-#Functionality GET Request
-#@upload_blueprint.route('/process_audio', methods=['GET'])
-    #Pseudocode
-    # Use query parameter?? to pass audio file
-
-    # Retrieve file .. download_audio
-
-    #Trim audio using function trim_audio function I implemented in input_upload.py
-    #Then analyze the audio
-
-    #Return analysis result
+def upload_file_route():
+    """Route to handle file upload."""
+    from app import socketio  # Import socketio from app.py
+    return upload_file(socketio)  # Pass socketio to the upload_file function
