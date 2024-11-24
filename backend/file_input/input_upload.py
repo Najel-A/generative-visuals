@@ -70,7 +70,7 @@ def upload_file(socketio):
     '''
 
 
-    analyze_file(socketio, file_path) # First step in the process
+    analyze_file(socketio, file_path) # First step in the process, will call train function inside analyze
 
 
     print("Visuals Completed") # Temporary holder for debugging

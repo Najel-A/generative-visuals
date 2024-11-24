@@ -18,6 +18,7 @@ import librosa
 import random
 import numpy as np
 import colorsys
+from .train import train_model
 
 # Map features to a color palette
 def map_to_color(rms_value, centroid_value):
@@ -58,5 +59,14 @@ def analyze_file(socketio, file):
         colors.append(color)
     
     print("# of RGB Color combos:", len(colors))
+    # Extract 6 evenly spaced points (including start and end)
+    indices = np.linspace(0, len(colors) - 1, 6, dtype=int)  # 6 points
+    selected_colors = [(index, colors[index]) for index in indices]
+    # Extract only the RGB values for training
+    to_train = [color[1] for color in selected_colors]
+    print("Selected colors (index, RGB):", selected_colors)
+
+
+    train_model(socketio, to_train)
     print(colors)
     socketio.emit('progress', {'progress': 100})  # Progress at 100%
